@@ -1,5 +1,6 @@
 import pygame
 import random
+import time
 
 """
 10 x 20 square grid
@@ -195,13 +196,28 @@ def get_shape():
 
     return Piece(5, 0, random.choice(shapes))
 
+def text_objects(text, color, size):
+    font = pygame.font.Font('ARCADE_I.TTF', size, bold=True)
+    textSurface = font.render(text, True, color)
+    return textSurface, textSurface.get_rect()
 
-def draw_text_middle(text, size, color, surface, y_offset=0):
+def message_to_screen(msg, color, size, x_displace = 0, y_displace = 0):
+    textSurf, textRect = text_objects(msg,color, 30)
+    textRect = x_displace, y_displace
+    win.blit(textSurf, textRect)
+
+def draw_text_middle(text, size, color, surface, y_offset=0, text2=None, text3=None):
     font = pygame.font.Font('ARCADE_I.TTF', size, bold=True)
     label = font.render(text, 1, color)
+    label2 = font.render(text2, 1, color)
+    label3 = font.render(text3, 1, color)
 
-    surface.blit(label, (top_left_x + play_width/2 - (label.get_width() / 2), top_left_y + play_height/2 - label.get_height()/2 + y_offset))
-
+    if text2==None or random.randint(0,10):
+        surface.blit(label, (top_left_x + play_width/2 - (label.get_width() / 2), top_left_y + play_height/2 - label.get_height()/2 + y_offset))
+    elif random.randint(0,1):
+        surface.blit(label2, (0,top_left_y + play_height / 2 - label.get_height() / 2 + y_offset))
+    else:
+        surface.blit(label3, (0, top_left_y + play_height / 2 - label.get_height() / 2 + y_offset))
 
 def draw_grid(surface, row, col):
     sx = top_left_x
@@ -240,10 +256,10 @@ def clear_rows(grid, locked):
 
 
 def draw_next_shape(shape, surface):
-    font = pygame.font.Font('ARCADE_I.TTF', 30)
-    label = font.render('Siguiente', 1, (255,255,255))
+    font = pygame.font.Font('ARCADE_I.TTF', 20)
+    label = font.render('Siguiente:', 1, (255,255,255))
 
-    sx = top_left_x + play_width + 50
+    sx = top_left_x + play_width + 40
     sy = top_left_y + play_height/2 - 100
     format = shape.shape[shape.rotation % len(shape.shape)]
 
@@ -277,22 +293,28 @@ def draw_window(surface, score=0 ,last_score=0, level=0):
 
     #Current Score
     font = pygame.font.Font('ARCADE_I.TTF', 30)
-    label = font.render('Puntos: '+str(score), 1, (255, 255, 255))
-    sx = top_left_x + play_width + 50
+    label = font.render('Puntos: ', 1, (255, 255, 255))
+    label_score = font.render(str(score), 1, (255, 255, 255))
+    sx = top_left_x + play_width + 40
     sy = top_left_y + play_height / 2 - 100
-    surface.blit(label, (sx +20, sy+160))
+    surface.blit(label, (sx +10, sy+160))
+    surface.blit(label_score, (sx +10, sy+210))
 
     #High Score
-    label = font.render('Record: ' + last_score, 1, (255, 255, 255))
-    sx = top_left_x - 200
-    sy = top_left_y + 200
-    surface.blit(label, (sx + 20, sy + 160))
+    label = font.render('Record: ', 1, (255, 255, 255))
+    record = font.render(last_score, 1, (255, 255, 255))
+    sx = top_left_x - 230
+    sy = top_left_y + 260
+    surface.blit(label, (sx, sy))
+    surface.blit(record, (sx, sy+50))
 
     #Level
-    label = font.render('Nivel: ' + str(level), 1, (255, 255, 255))
-    sx = top_left_x - 200
-    sy = top_left_y + 100
-    surface.blit(label, (sx + 20, sy + 160))
+    label = font.render('Nivel: ', 1, (255, 255, 255))
+    lvl = font.render(str(level), 1, (255, 255, 255))
+    sx_lab = top_left_x - 230
+    sy_lab = top_left_y + 100
+    surface.blit(label, (sx_lab, sy_lab ))
+    surface.blit(lvl, (sx_lab , sy_lab+50))
 
     for i in range(len(grid)):
         for j in range(len(grid[i])):
@@ -304,7 +326,7 @@ def draw_window(surface, score=0 ,last_score=0, level=0):
     # pygame.display.update()
 
 
-def main():
+def main(clock):
     last_score = max_score()
 
     global grid
@@ -316,7 +338,6 @@ def main():
     run = True
     current_piece = get_shape()
     next_piece = get_shape()
-    clock = pygame.time.Clock()
     fall_time = 0
     fall_speed = 0.27
     increment_speed = 0.01
@@ -405,7 +426,10 @@ def main():
             #score = rows_cleared * 100
             level = int(rows_cleared/10)
             if (before!=rows_cleared) and (rows_cleared!= 0):
-                score += (rows_cleared-before)*100
+                if level==0:
+                    score += (rows_cleared-before)*100
+                else:
+                    score += (rows_cleared - before) * 100 * level
 
         draw_window(win, score, last_score, level)
         draw_next_shape(next_piece, win)
@@ -416,24 +440,29 @@ def main():
             run = False
             update_score(score)
 
-    draw_text_middle("You Lost", 80, (255,255,255), win)
+    draw_text_middle("GAME OVER", 80, (255,255,255), win)
     pygame.display.update()
-    pygame.time.delay(2000)
+    pygame.time.delay(4000)
 
 
 def main_menu():
     run = True
+    count=0
+    colours=[(255,255,255),(0,0,0),(255,255,255),(255,255,255),(255,255,255),(255,255,255),(255,255,255),(255,255,255)]
+    clock=pygame.time.Clock()
     while run:
         win.fill((0,0,0))
-        draw_text_middle('Presiona cualquier boton', 30, (255, 255, 255), win, -20)
-        draw_text_middle('para jugar.', 30, (255, 255, 255), win, 20)
+        draw_text_middle('Presiona cualquier boton', 30,  colours[(count%6)], win, -20,'ualquier boton    Presiona c', '     Presiona cualquier boton')
+        draw_text_middle('para jugar.', 30, colours[(count%6)], win, 20, 'gar.                 Para ju', '     Para jugar.')
+        count+=random.randint(0,3)
         pygame.display.update()
+        clock.tick(random.randint(4,6))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
 
             if event.type == pygame.KEYDOWN:
-                main()
+                main(clock)
     pygame.quit()
 
 win = pygame.display.set_mode((s_width, s_height))
